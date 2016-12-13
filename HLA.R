@@ -1,3 +1,8 @@
+load("HLA_base.rda")
+library(igraph)
+library(stringdist)
+library(Biostrings)
+HLA_set<-DNAStringSet(HLA_base$Sequence)
 #from tcr
 revcomp<-function (.seq) 
 {
