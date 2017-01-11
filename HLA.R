@@ -2,6 +2,7 @@ load("HLA_base.rda")
 library(igraph)
 library(stringdist)
 library(Biostrings)
+library(data.table)
 HLA_set<-DNAStringSet(HLA_base$Sequence)
 #from tcr
 revcomp<-function (.seq) 
@@ -225,14 +226,15 @@ intersect_amplicones3<-function(first_amp_list,second_amp_list){
   #do.call(rbind,do.call(rbind,res))
 }
 
-mismatch_vector<-function(seq,err_prob=0.001,max_mismatch=3){
-  mism<-rep(0.0000000001,nrow(HLA_base))
-  mism[grepl(gsub("N","[AGCT]",seq,fixed=T),x = HLA_base$Sequence)]<-1
+mismatch_vector<-function(seq,err_prob=0.001,max_mismatch=3){ #returns a vector???
+  mism<-rep(0.0000000001,nrow(HLA_base)) #set very low prob 
+  mism[grepl(gsub("N","[AGCT]",seq,fixed=T),x = HLA_base$Sequence)]<-1 #if something is exactly matched it gets weight 1
   for (i in 1:max_mismatch)
-    mism[vcountPattern(pattern = seq,subject = HLA_set,algorithm = "auto",fixed = F,max.mismatch = i,min.mismatch = i,with.indels = F)!=0]<-err_prob**i
+    mism[vcountPattern(pattern = seq,subject = HLA_set,algorithm = "auto",fixed = F,max.mismatch = i,min.mismatch = i,with.indels = F)!=0]<-err_prob**i #if something is not exactly matched it gets weight err_prob**i
   #mism<-mism/sum(mism,na.rm = T)
   prop.table(mism)
 }
+
 mismatch_matrix<-function(amplist,err_prob=0.001,max_mismatch=3){
   do.call(cbind,lapply(amplist$assembled,mismatch_vector,err_prob=0.001,max_mismatch=3))
 }
@@ -245,8 +247,8 @@ amp1mism<-mismatch_matrix(amp1list)
 amp2mism<-mismatch_matrix(amp2list)
 amp1maps<-(apply(amp1mism,MARGIN = 1,function(x){paste0(which(x>0.001),collapse=" ")}))
 amp2maps<-(apply(amp2mism,MARGIN = 1,function(x){paste0(which(x>0.001),collapse=" ")}))
-fi<-amp1list$freq%*%t(amp1mism)
-bi<-amp2list$freq%*%t(amp2mism)
+fi<-amp1list$freq%*%t(amp1mism) #why is that? it could be replaced with some prob, that given seq is error from bigger seq (matrix n_seq by n_seq), ratios? and then we simply multiply each by rowsums?== integrate over n2
+bi<-amp2list$freq%*%t(amp2mism) #PROB THAT IT IS TRUE SEQUENCE. 
 
 #list(as.vector(fi),as.vector(bi),as.vector(fi*bi))
 as.data.table(data.frame(fi=as.vector(fi),bi=as.vector(bi),fibi=as.vector(fi)*as.vector(bi),allele=HLA_base$Allele,class=HLA_base$HLA_class,a1=amp1maps,a2=amp2maps,a1_a2=paste(amp1maps,amp2maps,sep="_")))
@@ -814,7 +816,7 @@ HLA_amplicones_full<-function(read1,read2,threshold=100,read_length=250){
                Iamp2alt=readed[grepl("GGCAA[AG]GATTACATCGCC|GGCAAGGATTACATCGCT",substr(readed$read1,1,22)),],
                IIamp1_DQBalt=readed[grepl("TGAGGGCAGAGAC[CT]CTCC",substr(readed$read1,1,22)),],
                IIamp1_DRBalt=readed[grepl("TGACAGTGACACTGATGG|TGACAGTGACATTGACGG",substr(readed$read1,1,22)),],
-               IIamp2_DRBalt=readed[grepl("GGTTTCTATCCAGGCAGC",substr(readed$read1,1,22))&grepl("CCAGAGTGTCCTTTCTGA",substr(readed$read2,1,22)),],
+               IIamp2_DRBalt=readed[grepl("GGTTTCTATCCAGGCAGC",substr(readed$read1,1,22))&grepl("TG[CT]TCTGGGCAGATTCAG",substr(readed$read2,1,22)),],
                IIamp2_DQBalt=readed[grepl("ACCATCTCCCCATCCAG",substr(readed$read1,1,22))&grepl("TG[CT]TCTGGGCAGATTCAG",substr(readed$read2,1,22)),],
                Iamp1_inv=readed[grepl("GGGCCGCCTCC[AC]ACTTG|GGGCCGTCTCCCACTTG|GGACCGCCTCCCACTTG",substr(readed$read1,1,20)),],
                Iamp2_inv=readed[grepl("[CT]GGTGG[AG]CTGGGAAGA",substr(readed$read1,1,20)),],
@@ -825,7 +827,7 @@ HLA_amplicones_full<-function(read1,read2,threshold=100,read_length=250){
                Iamp2alt_inv=readed[grepl("TCAGGGTGAGGGGCT[CT]|TCAGGGTGCAGGGCTC",substr(readed$read1,1,22)),],
                IIamp1_DQBalt_inv=readed[grepl("GTCCAGTCACC[AG]TTCCTA",substr(readed$read1,1,22)),],
                IIamp1_DRBalt_inv=readed[grepl("CAG[CT]CTTCTCTTCCTGGC",substr(readed$read1,1,22)),],
-               IIamp2_DRBalt_inv=readed[grepl("GGTTTCTATCCAGGCAGC",substr(readed$read2,1,22))&grepl("CCAGAGTGTCCTTTCTGA",substr(readed$read1,1,22)),],
+               IIamp2_DRBalt_inv=readed[grepl("GGTTTCTATCCAGGCAGC",substr(readed$read2,1,22))&grepl("TG[CT]TCTGGGCAGATTCAG",substr(readed$read1,1,22)),],
                IIamp2_DQBalt_inv=readed[grepl("ACCATCTCCCCATCCAG",substr(readed$read2,1,22))&grepl("TG[CT]TCTGGGCAGATTCAG",substr(readed$read1,1,22)),]
                )
   print(sapply(readed,nrow))

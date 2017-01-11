@@ -1,0 +1,3 @@
+artifdf<-data.frame(seq=c("AAAA","GGGG","ACAA","GGTT"),reads=c(1000,500,1,2),stringsAsFactors = F)
+res<-matrix(0,ncol=nrow(artifdf),nrow=nrow(artifdf));for (i in 1:nrow(artifdf))for (j in 1:nrow(artifdf)){res[i,j]<-dbinom(x = artifdf$reads[j],size = artifdf$reads[j]+artifdf$reads[i],prob = 0.001^stringdist(artifdf$seq[i],artifdf$seq[j],method = "hamming"))}
+colSums(res)#gives the prob, that given sequence is an error. 
