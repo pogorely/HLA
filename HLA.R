@@ -256,6 +256,16 @@ as.data.table(data.frame(fi=as.vector(fi),bi=as.vector(bi),fibi=as.vector(fi)*as
 #tstluk[class=="C",,][prop.table(fibi)>0.01,,][,list(amps=paste0(allele,collapse=" "),fibi=sum(fibi)),a1_a2]
 }
 
+Alleles_bayes_multiple<-function(amplists){
+  mismmats<-lapply(amplists,mismatch_matrix)
+  vecs<-lapply(1:length(amplists),function(x){amplists[[x]]$freq%*%t(mismmats[[x]])})
+  vec<-as.vector(vecs[[1]])
+  for (i in 2:length(amplists)){
+    vec<-vec*as.vector(vecs[[i]])
+  }
+  as.data.table(data.frame(allele=HLA_base$Allele,class=HLA_base$HLA_class,fibi=vec))
+}
+
 bayesian_alleles_report<-function(allelelist){
   a<-allelelist[class=="A",,][,,][,list(amps=paste0(allele,collapse=" "),fibi=sum(fibi)),a1_a2][,rel_fibi:=prop.table(fibi),][order(-rel_fibi)]
   b<-allelelist[class=="B",,][,,][,list(amps=paste0(allele,collapse=" "),fibi=sum(fibi)),a1_a2][,rel_fibi:=prop.table(fibi),][order(-rel_fibi)]
